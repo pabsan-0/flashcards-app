@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flashcards — Single File App</title>
+
+  <style>
+    :root {
+      --bg: #0f1724;
+      --card-front: #0b1220;
+      --card-back: #1a1f2b;
+      --accent: #7c3aed;
+      --muted: #94a3b8;
+      --glass: rgba(255, 255, 255, 0.03);
+      --radius: 16px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(180deg, #071024 0%, #071933 100%);
+      color: #e6eef8;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .panel {
+      width: 100%;
+      height: 100%;
+      max-width: 520px;
+      min-height: 720px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent);
+      border-radius: 18px;
+      padding: 18px;
+      box-sizing: border-box;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* vertical layout content */
+    .vertical {
+      display: flex;
+      flex-direction: column;
+      min-height: 70vh;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .icon {
+      width: 96px;
+      height: 96px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 -6px 14px rgba(255, 255, 255, 0.06);
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+
+    .bottom-50 {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;     /* use flex so text centers properly */
+      box-sizing: border-box;   /* normalize padding across elements */
+      width: 80%;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--glass);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      text-align: center;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+
+      font-family: inherit;    /* inherit same font as body */
+      font-size: 1rem;         /* lock font size */
+      line-height: 1.4;        /* normalize text alignment */
+      font-weight: 600;
+    }
+
+    .btn.primary {
+      background: linear-gradient(90deg, var(--accent), #4f46e5);
+      box-shadow: 0 6px 18px rgba(124, 58, 237, 0.18);
+      color: white;
+    }
+
+    .btn.secondary {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.11), transparent);
+      color: white;
+    }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input[type=file] {
+      display: none;
+    }
+
+    /* modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.2);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      padding: 18px;
+      border-radius: 12px;
+      min-width: 280px;
+      max-width: 90%;
+      height: 240px;
+      background: linear-gradient(180deg, #0f030f, #161b2b);
+      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.7);
+    }
+
+    .modal h3 {
+      margin: 0 0 8px 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type=number] {
+      width: 100px;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255, 255, 255, 0.13);
+      color: inherit;
+    }
+
+    label {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+
+    #quiz {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-between;  /* TopNav top, flashcard middle, actions bottom */
+      width: 100%;
+    }
+
+    /* Quiz view */
+    .quiz-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      height: 300px;
+      padding: 0px;
+      perspective: 1000px;
+      transition: background 0.3s;
+    }
+
+    .quiz-box.front {
+      background: linear-gradient(135deg, #333333, #1b2030);
+    }
+
+    .quiz-box.back {
+      background: linear-gradient(135deg, #000000, #1b2030);
+    }
+
+    .card-text {
+      font-size: 20px;
+      text-align: center;
+      word-break: break-word;
+      backface-visibility: hidden;
+      transition: none;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .tiny {
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: var(--glass);
+    }
+
+    /* top nav */
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+
+    /* drag hover */
+    .dragover {
+      outline: 3px dashed rgba(124, 58, 237, 0.35);
+    }
+ 
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="panel" id="panel">
+
+      <!-- Landing page -->
+      <div class="vertical" id="landing">
+        <div class="icon" aria-hidden>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="title">Flashcards</div>
+
+        <div class="bottom-50">
+
+          <label class="btn secondary">
+            From local file
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+          </label>
+
+          <button class="btn primary" id="presetsBtn">Presets</button>
+
+          <div class="small">
+            You can also drag-&-drop a CSV/XLSX file anywhere on this panel.
+          </div>
+        </div>
+      </div>
+
+      <!-- Quiz view -->
+      <div id="quiz" style="display:none">
+        <!-- Top navigation -->
+        <div class="topnav" id="topnav" style="display:none">
+          <div class="back" id="backBtn" title="Back to landing">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M15 18l-6-6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="small" id="filenameDisplay"></div>
+        </div>
+
+
+        <div>
+            <div class="quiz-box front" id="quizBox">
+              <div class="card-text" id="cardText">—</div>
+            </div>
+
+            <div class="controls-row">
+              <button class="btn primary" id="leftBtn">◀</button>
+              <button class="btn primary" id="revealBtn">Reveal</button>
+              <button class="btn primary" id="rightBtn">▶</button>
+            </div>
+        </div>
+
+        <div class="controls-row" id="cardActions" style="display:none">
+          <button class="btn secondary" id="translateBtn">Translate</button>
+          <button class="btn secondary" id="conjugateBtn">Conjugate</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 id="modalTitle">File loaded</h3>
+      <div class="small" id="modalSubtitle">File: —</div>
+
+      <div class="controls" style="margin-top:10px">
+        <label> <input type="checkbox" id="reverseChk"/> Reverse face (show column B, guess A) </label>
+        <label> <input type="checkbox" id="randChk"/> Randomize order </label>
+        <label> <input type="checkbox" id="discardHeaderChk"checked /> Discard header row </label>
+ 
+
+        <div class="control-row">
+          <label class="small">Max number:</label>
+          <input type="number" id="maxNum" min="1" value="200" />
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+          <button id="cancelModal" class="btn secondary">Cancel</button>
+          <button id="okModal" class="btn primary">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="presetsModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>Select a preset file</h3>
+      <div class="controls" id="presetsList" style="margin-top:10px; max-height: 300px; overflow-y:auto;">
+        <!-- Buttons for preset files will be injected here -->
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end">
+        <button id="cancelPresets" class="btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script>
+    let rawRows = [],
+        deck = [],
+        index = 0,
+        showingBack = false;
+
+    const landing = document.getElementById('landing'),
+          quiz = document.getElementById('quiz'),
+          cardText = document.getElementById('cardText'),
+          quizBox = document.getElementById('quizBox'),
+          fileInput = document.getElementById('fileInput'),
+          presetsBtn = document.getElementById('presetsBtn'),
+          modal = document.getElementById('modal'),
+          modalTitle = document.getElementById('modalTitle'),
+          modalSubtitle = document.getElementById('modalSubtitle'),
+          reverseChk = document.getElementById('reverseChk'),
+          discardHeaderChk = document.getElementById('discardHeaderChk'),
+          randChk = document.getElementById('randChk'),
+          maxNum = document.getElementById('maxNum'),
+          okModal = document.getElementById('okModal'),
+          cancelModal = document.getElementById('cancelModal'),
+          leftBtn = document.getElementById('leftBtn'),
+          rightBtn = document.getElementById('rightBtn'),
+          revealBtn = document.getElementById('revealBtn'),
+          backBtn = document.getElementById('backBtn'),
+          topnav = document.getElementById('topnav'),
+          filenameDisplay = document.getElementById('filenameDisplay'),
+          translateBtn = document.getElementById('translateBtn'),
+          conjugateBtn = document.getElementById('conjugateBtn'),
+          panel = document.getElementById('panel'),
+          cardActions = document.getElementById('cardActions');
+
+    function parseCSV(text) {
+      const rows = [],
+            lines = text.split(/\r?\n/);
+
+      for (let r of lines) {
+        if (!r.trim()) continue;
+
+        let row = [],
+            cur = '',
+            inQuote = false;
+
+        for (let i = 0; i < r.length; i++) {
+          const ch = r[i];
+
+          if (ch === '"') {
+            if (inQuote && r[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuote = !inQuote;
+            }
+          } else if (ch === ',' && !inQuote) {
+            row.push(cur);
+            cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        row.push(cur);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    async function loadPresetFile(fileName) {
+      try {
+        const res = await fetch(fileName);
+        if (!res.ok) throw new Error('File not found');
+
+        if (fileName.endsWith('.csv')) {
+          rawRows = parseCSV(await res.text());
+        } else {
+          const ab = await res.arrayBuffer();
+          const wb = XLSX.read(new Uint8Array(ab), { type: 'array' });
+          rawRows = XLSX.utils.sheet_to_json(
+            wb.Sheets[wb.SheetNames[0]],
+            { header: 1, raw: false }
+          );
+        }
+
+        afterLoad(fileName);
+      } catch (err) {
+        alert(`Failed to load preset file: ${fileName}`);
+      }
+    }
+
+
+    function handleFile(file) {
+      const name = file.name || 'preset',
+            ext = name.split('.').pop().toLowerCase(),
+            reader = new FileReader();
+
+      reader.onload = e => {
+        if (ext === 'csv') {
+          rawRows = parseCSV(e.target.result);
+        } else {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          rawRows = XLSX.utils.sheet_to_json(
+            workbook.Sheets[workbook.SheetNames[0]],
+            { header: 1, raw: false }
+          );
+        }
+        afterLoad(name);
+      };
+
+      if (ext === 'csv') {
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    function afterLoad(name) {
+      const rows = rawRows.slice(1);
+      const items = rows
+        .map(r => ({
+          a: (r[0] || '').toString().trim(),
+          b: (r[1] || '').toString().trim()
+        }))
+        .filter(x => x.a || x.b);
+
+      modalTitle.textContent = 'File loaded';
+      modalSubtitle.textContent = `File: ${name} — ${items.length} rows`;
+
+      window._pendingItems = items;
+      modal.style.display = 'flex';
+    }
+
+    function startQuiz() {
+      let items = window._pendingItems || [];
+      const discardHeader = discardHeaderChk.checked,
+            reverse = reverseChk.checked,
+            randomize = randChk.checked,
+            max = Math.max(1, parseInt(maxNum.value) || 1000);
+
+      if (discardHeader) {
+        items = items.slice(1);  // skip first row
+      } 
+
+      deck = items
+        .map(it => ({ a: it.a, b: it.b }))
+        .filter(d => d.a || d.b);
+
+      if (deck.length > max) {
+        deck = deck.slice(0, max);
+      }
+
+      if (randomize) {
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+      }
+
+      window._reverseFace = reverse;
+
+      if (!deck.length) {
+        alert('No usable rows in the file.');
+        modal.style.display = 'none';
+        return;
+      }
+
+      index = 0;
+      showingBack = false;
+
+      landing.style.display = 'none';
+      quiz.style.display = 'flex';
+      topnav.style.display = 'flex';
+      cardActions.style.display = 'flex';
+
+      modal.style.display = 'none';
+
+      renderCard();
+    }
+
+    function renderCard({ animate = false } = {}) {
+      if (!deck.length) {
+        cardText.textContent = '—';
+        filenameDisplay.textContent = '';
+        return;
+      }
+
+      const item = deck[index],
+            reverse = window._reverseFace;
+
+      let front = reverse ? item.b : item.a,
+          back = reverse ? item.a : item.b;
+
+      if (!front) front = back || '—';
+      if (!back) back = front;
+
+      if (animate) {
+        // Only animate reveal
+        cardText.style.transition = 'transform 0.6s';
+        cardText.style.transform = 'rotateY(180deg)';
+        setTimeout(() => {
+          cardText.textContent = showingBack ? back : front;
+          cardText.style.transform = 'rotateY(0deg)';
+        }, 150);
+      } else {
+        // No animation, instant update
+        cardText.style.transition = 'none';
+        cardText.textContent = showingBack ? back : front;
+        cardText.style.transform = 'rotateY(0deg)';
+      }
+
+      quizBox.classList.toggle('front', !showingBack);
+      quizBox.classList.toggle('back', showingBack);
+
+      // Update topnav to show current card index
+      filenameDisplay.textContent = modalSubtitle.textContent + ` — ${index + 1} / ${deck.length}`;
+    }
+
+
+
+    function goNext() {
+      if (!deck.length) return;
+      index = (index + 1) % deck.length;
+      showingBack = false;
+      renderCard();
+    }
+
+    function goPrev() {
+      if (!deck.length) return;
+      index = (index - 1 + deck.length) % deck.length;
+      showingBack = false;
+      renderCard();
+    }
+
+    function toggleReveal() {
+      showingBack = !showingBack;
+      renderCard();
+    }
+
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) {
+        handleFile(e.target.files[0]);
+        fileInput.value = ""; // reset so same file can be picked again
+      }
+    });
+
+
+  presetsBtn.addEventListener('click', async () => {
+      presetsList.innerHTML = '';
+
+      try {
+        const res = await fetch('presets.json');
+        if (!res.ok) throw new Error('Preset manifest not found');
+
+        let files = await res.json();
+        files.sort(); // alphabetical
+
+        if (!files.length) throw new Error('No preset files listed');
+
+        for (const fileName of files) {
+          const btn = document.createElement('button');
+          btn.textContent = fileName;
+          btn.className = 'btn secondary';
+          btn.style.width = '100%';
+          btn.style.marginBottom = '6px';
+
+          btn.addEventListener('click', async () => {
+            presetsModal.style.display = 'none';
+            await loadPresetFile(fileName);
+          });
+
+          presetsList.appendChild(btn);
+        }
+
+        presetsModal.style.display = 'flex';
+
+      } catch (err) {
+        alert('Failed to load preset list: ' + err.message);
+      }
+    });
+
+
+    okModal.addEventListener('click', startQuiz);
+    cancelModal.addEventListener('click', () => modal.style.display = 'none');
+
+    revealBtn.addEventListener('click', () => {
+      showingBack = !showingBack;
+      renderCard({ animate: true });  // only reveal rotates
+    });
+
+    leftBtn.addEventListener('click', () => {
+      goPrev();
+      renderCard({ animate: false }); // instant update
+    });
+
+    rightBtn.addEventListener('click', () => {
+      goNext();
+      renderCard({ animate: false }); // instant update
+    });
+
+
+    backBtn.addEventListener('click', () => {
+      quiz.style.display = 'none';
+      landing.style.display = 'flex';
+      topnav.style.display = 'none';
+      window._pendingItems = null;
+      deck = [];
+      rawRows = [];
+      filenameDisplay.textContent = '';
+      cardActions.style.display = 'none';
+    });
+
+    window.addEventListener('keydown', e => {
+      if (landing.style.display !== 'none') return;
+
+      if (e.key === 'ArrowRight') {
+        goNext();
+        renderCard({ animate: false });  // next card, no rotation
+      } else if (e.key === 'ArrowLeft') {
+        goPrev();
+        renderCard({ animate: false });  // previous card, no rotation
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        // Reveal current card with rotation
+        showingBack = !showingBack;
+        renderCard({ animate: true });
+        e.preventDefault();  // prevent scrolling when pressing space
+      }
+    });
+
+    // Drag and drop support
+    panel.addEventListener('dragover', e => {
+      e.preventDefault();
+      panel.classList.add('dragover');
+    });
+
+    panel.addEventListener('dragleave', () => panel.classList.remove('dragover'));
+
+    panel.addEventListener('drop', e => {
+      e.preventDefault();
+      panel.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    translateBtn.addEventListener('click', () => {
+      const text = cardText.textContent;
+      if (!text) return;
+      const url = `https://www.reverso.net/text-translation#sl=fra&tl=eng&text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank'); // opens in a separate tab
+    });
+
+    conjugateBtn.addEventListener('click', () => {
+      const text = cardText.textContent;
+      if (!text) return;
+      const url = `https://conjugator.reverso.net/conjugation-french-verb-${encodeURIComponent(text)}.html`;
+      window.open(url, '_blank'); // opens in a separate tab
+    });
+  </script>
+</body>
+</html>
+
