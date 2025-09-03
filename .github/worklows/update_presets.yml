@@ -4,7 +4,7 @@ name: Update Presets JSON and Deploy
 on:
   push:
     branches:
-      - main  # Trigger on pushes to main
+      - master  # Trigger on pushes to main
 
 jobs:
   update-and-deploy:
