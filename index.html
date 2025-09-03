@@ -1,9 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Flashcards — Single File App</title>
+  <title>Flashcards</title>
 
   <style>
     :root {
@@ -245,6 +247,29 @@
       outline: 3px dashed rgba(124, 58, 237, 0.35);
     }
  
+    /* Make panel full screen on mobile */
+    @media (max-width: 640px) {
+      html {
+        overflow: hidden;
+      }
+
+      .app {
+        padding: 0px;
+        margin: 0px;
+        height: 100%;
+
+      }
+      .panel {
+        height: 100%;
+        max-width: 100%;
+        border-radius: 0;  
+      }
+
+      #quiz {
+        justify-content: start;
+      }
+
+    }
   </style>
 </head>
 
