@@ -6,7 +6,7 @@ It receives either a `xlsx` or `csv` file, using the first two columns to popula
 
 # Setup
 
-Best experience using online version at [pabsan-0.github.io/flashcards-app](pabsan-0.github.io/flashcards-app). On android, I suggest you "install" it from your web browser (like a mere shortcut, but more convenient view).
+Best experience using online version at [pabsan-0.github.io/flashcards-app](https://pabsan-0.github.io/flashcards-app). On android, I suggest you "install" it from your web browser (like a mere shortcut, but more convenient view).
 
 To deploy and run locally:
 
